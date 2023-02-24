@@ -1,7 +1,7 @@
 import { Generator } from "https://deno.land/x/tinygen/tinygen.ts";
 
 async function currentSite() {
-  return new Generator((await import(`${Deno.cwd()}/site.ts`)).default);
+  return new Generator((await import(`file://${Deno.cwd()}/site.ts`)).default);
 }
 
 export async function build() {
