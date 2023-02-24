@@ -1,4 +1,4 @@
-import { Generator } from "https://deno.land/x/tinygen/tinygen.ts";
+import { Generator } from "./tinygen.ts";
 
 async function currentSite() {
   return new Generator((await import(`file://${Deno.cwd()}/site.ts`)).default);
@@ -16,11 +16,11 @@ export async function serve() {
 
 if (import.meta.main) {
   switch (Deno.args[0]) {
-  case "build":
-    await build();
-    break;
-  case "serve":
-    await serve();
-    break;
+    case "build":
+      await build();
+      break;
+    case "serve":
+      await serve();
+      break;
   }
 }
