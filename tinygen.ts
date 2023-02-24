@@ -177,7 +177,7 @@ export class Generator {
       layoutPath = `${this.srcDir}/${name}/_layout.tsx`;
     }
     if (exists(layoutPath)) {
-      const layoutMod = await import(layoutPath);
+      const layoutMod = await import("file://"+layoutPath);
       return layoutMod.default;
     }
     // passthrough layout
@@ -218,7 +218,7 @@ export class Generator {
         this.pages[path] = page;
         break;
       case ".tsx":
-        const mod = await import(srcPath);
+        const mod = await import("file://"+srcPath);
         page = {
           src: srcPath,
           path: path,
