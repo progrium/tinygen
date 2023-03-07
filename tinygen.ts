@@ -59,6 +59,7 @@ async function pretty(str) {
 }
 
 function render(hyperscript) {
+  if (hyperscript === undefined) return "";
   const toCssName = (str) => str.replace(/[A-Z]/g, letter => `-${letter.toLowerCase()}`);
   const renderStyles = (styles) => Object.keys(styles).map(style => [toCssName(style), styles[style]].join(": ")+";").join(" ");
   const renderAttrs = (attrs) => Object.keys(attrs).map(attr => [attr, `"${(typeof attrs[attr] === 'object')?renderStyles(attrs[attr]):attrs[attr]}"`].join("=")).join(" ");
@@ -171,17 +172,18 @@ export class Generator {
     return false;
   }
 
-  async layout(name?: string): any {
+  async layout(name?: string|null): any {
+    const passthrough = {view: ({children}) => children};
+    if (name === null) return passthrough;
     let layoutPath = `${this.srcDir}/_layout.tsx`;
     if (name) {
-      layoutPath = `${this.srcDir}/${name}/_layout.tsx`;
+      layoutPath = `${this.srcDir}/${name}/_layout.tsx`
     }
     if (exists(layoutPath)) {
       const layoutMod = await import("file://"+layoutPath);
       return layoutMod.default;
     }
-    // passthrough layout
-    return { view: ({ children }) => children };
+    return passthrough;
   }
 
   pagePath(srcPath: string): string {
@@ -213,7 +215,7 @@ export class Generator {
         page = merge({
           src: srcPath,
           path: path,
-          view: () => v(layout, merge(file.attrs, this.config.global), content /*m.trust(content)*/),
+          view: () => v(layout, merge(this.config.global, file.attrs, {path}), content /*m.trust(content)*/),
         }, file.attrs);
         this.pages[path] = page;
         break;
@@ -222,7 +224,7 @@ export class Generator {
         page = {
           src: srcPath,
           path: path,
-          view: () => v(mod.default, merge({ layout }, this.config.global)),
+          view: () => v(mod.default, merge(this.config.global, {layout, path})),
         };
         this.pages[path] = page;
         break;
@@ -255,7 +257,13 @@ export class Generator {
   }
 
   async render(page: Page): string {
-    return "<!DOCTYPE html>\n" + await pretty(render(v(page)));
+    const output = await pretty(render(v(page)));
+    switch (extname(page.path)) {
+      case ".xml":
+        return `<?xml version="1.0" encoding="UTF-8" ?>\n${output}`;
+      default:
+        return "<!DOCTYPE html>\n"+output;
+    }
   }
 
   async buildAll() {
@@ -272,7 +280,8 @@ export class Generator {
       if (page) {
         const out = await this.render(page);
         if (out) {
-          const target = `${this.destDir}${page.path}/index.html`;
+          const path = (extname(page.path)?page.path:`${page.path}/index.html`)
+          const target = `${this.destDir}${path}`;
           mkdirAll(dirname(target));
           await Deno.writeTextFile(target, out);
         }
@@ -319,6 +328,32 @@ export class Generator {
         });
       }
       return new Response("Not found", {status: 404, headers: {"content-type": "text/html"}});
-    }, { port: this.config.port });
+    }, { port: this.config.port || 9090 });
+  }
+}
+
+async function currentSite() {
+  return new Generator((await import(`file://${Deno.cwd()}/site.ts`)).default);
+}
+
+export async function runBuild() {
+  const site = await currentSite();
+  await site.buildAll();
+}
+
+export async function runServe() {
+  const site = await currentSite();
+  await site.serve();
+}
+
+export async function run() {
+  const site = await currentSite();
+  switch (Deno.args[0]) {
+    case "build":
+      await site.buildAll();
+      return;
+    case "serve":
+      await site.serve();
+      return;
   }
 }
