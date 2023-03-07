@@ -1,7 +1,7 @@
 
 async function currentSite() {
-  const mod = await import(`file://${Deno.cwd()}/tinygen.ts`);
-  return new mod.Generator((await import(`file://${Deno.cwd()}/site.ts`)).default);
+  const mod = await import(`./tinygen.ts`);
+  return new mod.Generator((await import(`./site.ts`)).default);
 }
 
 export async function build() {
