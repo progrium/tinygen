@@ -1,7 +1,7 @@
-import { Generator } from "./tinygen.ts";
 
 async function currentSite() {
-  return new Generator((await import(`file://${Deno.cwd()}/site.ts`)).default);
+  const mod = await import(`file://${Deno.cwd()}/tinygen.ts`);
+  return new mod.Generator((await import(`file://${Deno.cwd()}/site.ts`)).default);
 }
 
 export async function build() {
